@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Отзывы — RepairWorkshop</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</a>
+    <ul class="main-menu" id="main-menu">
+      <li><a href="index.html">Главная</a></li>
+      <li><a href="services.html">Услуги</a></li>
+      <li><a href="portfolio.html">Портфолио</a></li>
+      <li><a href="reviews.html">Отзывы</a></li>
+    </ul>
+    <div class="header-actions" id="header-actions"></div>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+  </div>
+</header>
+
+<section class="section">
+  <div class="container" style="max-width:900px">
+    <div class="section-head">
+      <span class="section-eyebrow">Отзывы</span>
+      <h1 class="section-title">Что говорят клиенты</h1>
+    </div>
+
+    <div class="rating-summary" id="rating-summary"></div>
+    <div id="reviews-list" class="grid" style="gap:18px"></div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</div>
+        <p class="footer-desc" id="footer-about"></p>
+      </div>
+      <div>
+        <h4>Разделы</h4>
+        <ul>
+          <li><a href="services.html">Услуги</a></li>
+          <li><a href="portfolio.html">Портфолио</a></li>
+          <li><a href="reviews.html">Отзывы</a></li>
+          <li><a href="booking.html">Онлайн-запись</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Компания</h4>
+        <ul>
+          <li><a href="#">О нас</a></li>
+          <li><a href="#">Вакансии</a></li>
+          <li><a href="#" onclick="openCallbackModal();return false;">Контакты</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Контакты</h4>
+        <div class="footer-contacts" id="footer-contacts"></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 RepairWorkshop. Все права защищены.</span>
+      <span>Работаем для вас ежедневно</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/storage.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const reviews = DB.getPublishedReviews().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const total = reviews.length;
+  const avg = total ? (reviews.reduce((s,r) => s + r.rating, 0) / total) : 0;
+  const dist = [5,4,3,2,1].map(n => ({ n, count: reviews.filter(r => r.rating === n).length }));
+
+  document.getElementById('rating-summary').innerHTML = `
+    <div class="big">
+      <div class="num">${avg.toFixed(1)}</div>
+      <div class="stars" style="justify-content:center;margin-top:8px">
+        ${Array.from({length:5},(_,i) => `<span class="star ${i < Math.round(avg) ? 'on' : ''}" style="font-size:20px">★</span>`).join('')}
+      </div>
+      <div class="text-muted" style="font-size:13px;margin-top:6px">${total} отзывов</div>
+    </div>
+    <div class="rating-bars">
+      ${dist.map(d => `
+        <div class="rating-bar">
+          <span>${d.n} ★</span>
+          <div class="bar"><span style="width:${total ? (d.count/total*100) : 0}%"></span></div>
+          <span style="text-align:right">${d.count}</span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  const list = document.getElementById('reviews-list');
+  if (reviews.length === 0) {
+    list.innerHTML = `<div class="empty"><div class="ico">⭐</div><h3>Пока нет отзывов</h3><p>Станьте первым, кто оставит отзыв!</p></div>`;
+    return;
+  }
+  list.innerHTML = reviews.map(r => {
+    const u = DB.findUserById(r.clientId) || { name: 'Клиент', email: 'x' };
+    return `
+      <div class="review-card">
+        <div class="review-head">
+          ${avatarHTML(u)}
+          <div class="who">
+            <b>${escapeHtml(u.name)}</b>
+            <span class="stars">${Array.from({length:5},(_,i) => `<span class="star ${i < r.rating ? 'on' : ''}">★</span>`).join('')}</span>
+          </div>
+          <span class="date">${formatDate(r.createdAt, false)}</span>
+        </div>
+        <p class="text-soft" style="font-size:14.5px">${escapeHtml(r.text)}</p>
+      </div>
+    `;
+  }).join('');
+});
+</script>
+
+</body>
+</html>

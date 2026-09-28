@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Админ-панель — RepairWorkshop</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</a>
+    <ul class="main-menu" id="main-menu"><li><a href="index.html">На сайт</a></li></ul>
+    <div class="header-actions" id="header-actions"></div>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+  </div>
+</header>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="side-label">Управление</div>
+    <a href="#" class="active" data-tab="dashboard"><span class="ico">📊</span> Дашборд</a>
+    <a href="#" data-tab="requests"><span class="ico">📋</span> Заявки</a>
+    <a href="#" data-tab="reviews"><span class="ico">⭐</span> Отзывы</a>
+    <a href="#" data-tab="leads"><span class="ico">📞</span> Заявки на звонок</a>
+    <a href="#" data-tab="users"><span class="ico">👥</span> Пользователи</a>
+    <a href="#" data-tab="services"><span class="ico">🛠️</span> Услуги</a>
+    <div class="side-label">Настройки</div>
+    <a href="#" data-tab="settings"><span class="ico">⚙️</span> Настройки сайта</a>
+    <a href="index.html"><span class="ico">🌐</span> На сайт</a>
+  </aside>
+  <main class="app-main"><div id="content"></div></main>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+if (!Auth.requireAuth('login.html')) throw new Error('redirect');
+const user = Auth.current();
+if (user.role !== 'admin') {
+  Toast.error('Доступ только для администратора');
+  setTimeout(() => location.href = 'index.html', 800);
+}
+
+let tab = 'dashboard';
+
+function render() {
+  document.querySelectorAll('.sidebar a[data-tab]').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
+  const el = document.getElementById('content');
+  if (tab === 'dashboard') return renderDashboard(el);
+  if (tab === 'requests') return renderRequests(el);
+  if (tab === 'reviews') return renderReviews(el);
+  if (tab === 'leads') return renderLeads(el);
+  if (tab === 'users') return renderUsers(el);
+  if (tab === 'services') return renderServices(el);
+  if (tab === 'settings') return renderSettings(el);
+}
+
+function renderDashboard(el) {
+  const reqs = DB.getRequests();
+  const leads = DB.getLeads();
+  const reviews = DB.getReviews();
+  const users = DB.getUsers();
+  const revenue = reqs.reduce((s,r) => s + (r.finalCost || 0), 0);
+  const byStatus = STATUS_ORDER.map(s => ({ s, count: reqs.filter(r => r.status === s).length }));
+  const maxCount = Math.max(1, ...byStatus.map(x => x.count));
+
+  el.innerHTML = `
+    <div class="page-head"><div><h1>Дашборд</h1><p class="sub">Общая статистика мастерской</p></div></div>
+    <div class="grid grid-4">
+      <div class="stat-card"><div class="stat-icon">📋</div><div><div class="num">${reqs.length}</div><div class="lbl">Заявок</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">💰</div><div><div class="num">${formatPrice(revenue)}</div><div class="lbl">Оборот</div></div></div>
+      <div class="stat-card"><div class="stat-icon amber">📞</div><div><div class="num">${leads.length}</div><div class="lbl">Лидов</div></div></div>
+      <div class="stat-card"><div class="stat-icon cyan">👥</div><div><div class="num">${users.length}</div><div class="lbl">Пользователей</div></div></div>
+    </div>
+
+    <div class="grid grid-2 mt-4" style="align-items:start">
+      <div class="card">
+        <h3 class="mb-3" style="font-size:16px">Заявки по статусам</h3>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          ${byStatus.map(x => `
+            <div>
+              <div class="flex-between mb-1" style="font-size:13.5px"><span>${statusLabel(x.s)}</span><b>${x.count}</b></div>
+              <div class="progress"><span style="width:${x.count/maxCount*100}%"></span></div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <h3 class="mb-3" style="font-size:16px">Последние заявки</h3>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          ${reqs.slice(-5).reverse().map(r => {
+            const c = DB.findUserById(r.clientId);
+            return `<div class="flex-between" style="font-size:13.5px">
+              <div><b>#${r.id}</b> ${c ? escapeHtml(c.name) : ''}</div>
+              <div>${statusBadge(r.status)}</div>
+            </div>`;
+          }).join('') || '<div class="text-muted">Пока нет заявок</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderRequests(el) {
+  const reqs = DB.getRequests().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  el.innerHTML = `
+    <div class="page-head"><div><h1>Заявки</h1><p class="sub">Всего: ${reqs.length}</p></div></div>
+    <div class="toolbar">
+      <div class="search"><span class="ico">🔍</span><input id="req-search" placeholder="Поиск по клиенту или устройству"></div>
+      <select class="form-control" id="req-status" style="max-width:220px">
+        <option value="">Все статусы</option>
+        ${STATUS_ORDER.map(s => `<option value="${s}">${statusLabel(s)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>#</th><th>Клиент</th><th>Услуга</th><th>Устройство</th><th>Дата записи</th><th>Мастер</th><th>Статус</th><th></th></tr></thead>
+        <tbody id="req-body"></tbody>
+      </table>
+    </div>
+  `;
+  const paint = () => {
+    const q = document.getElementById('req-search').value.trim().toLowerCase();
+    const st = document.getElementById('req-status').value;
+    let list = reqs;
+    if (st) list = list.filter(r => r.status === st);
+    if (q) list = list.filter(r => {
+      const c = DB.findUserById(r.clientId);
+      const str = ((c ? c.name : '') + ' ' + r.deviceType + ' ' + (r.brand||'') + ' ' + (r.model||'')).toLowerCase();
+      return str.includes(q);
+    });
+    document.getElementById('req-body').innerHTML = list.length === 0
+      ? `<tr><td colspan="8" class="text-center text-muted" style="padding:40px">Ничего не найдено</td></tr>`
+      : list.map(r => {
+        const c = DB.findUserById(r.clientId);
+        const s = DB.findServiceById(r.serviceId);
+        const emp = r.employeeId ? DB.findUserById(r.employeeId) : null;
+        return `<tr>
+          <td><b>#${r.id}</b></td>
+          <td>${c ? escapeHtml(c.name) : '—'}<br><span class="text-muted" style="font-size:12px">${c ? escapeHtml(c.phone||'') : ''}</span></td>
+          <td>${s ? escapeHtml(s.title) : '—'}</td>
+          <td>${escapeHtml(r.deviceType)} ${escapeHtml(r.brand||'')} ${escapeHtml(r.model||'')}</td>
+          <td>${formatDate(r.scheduledAt)}</td>
+          <td>${emp ? escapeHtml(emp.name) : '<span class="text-muted">—</span>'}</td>
+          <td>${statusBadge(r.status)}</td>
+          <td><button class="btn btn-ghost btn-sm" onclick="openAdminRequest(${r.id})">Открыть</button></td>
+        </tr>`;
+      }).join('');
+  };
+  paint();
+  document.getElementById('req-search').addEventListener('input', paint);
+  document.getElementById('req-status').addEventListener('change', paint);
+}
+
+function openAdminRequest(id) {
+  const r = DB.getRequests().find(x => x.id === id);
+  if (!r) return;
+  const s = DB.findServiceById(r.serviceId);
+  const c = DB.findUserById(r.clientId);
+  const employees = DB.getUsers().filter(u => u.role === 'employee');
+  const statusOptions = STATUS_ORDER.map(x => `<option value="${x}" ${r.status===x?'selected':''}>${statusLabel(x)}</option>`).join('');
+  const empOptions = '<option value="">— Не назначен —</option>' + employees.map(e => `<option value="${e.id}" ${r.employeeId===e.id?'selected':''}>${escapeHtml(e.name)}</option>`).join('');
+
+  const html = `
+    <div class="modal-header">
+      <div><h2>Заявка #${r.id}</h2><div class="sub">${s ? escapeHtml(s.title) : ''}</div></div>
+      <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+    </div>
+    <div class="mb-3">${statusBadge(r.status)}</div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;margin-bottom:20px">
+      <div class="flex-between"><span class="text-muted">Клиент</span><b>${c ? escapeHtml(c.name) : '—'}</b></div>
+      <div class="flex-between"><span class="text-muted">Телефон</span><b>${c ? escapeHtml(c.phone||'—') : '—'}</b></div>
+      <div class="flex-between"><span class="text-muted">Устройство</span><b>${escapeHtml(r.deviceType)} ${escapeHtml(r.brand||'')} ${escapeHtml(r.model||'')}</b></div>
+      <div class="flex-between"><span class="text-muted">Запись</span><b>${formatDate(r.scheduledAt)}</b></div>
+      <div style="padding-top:8px;border-top:1px solid var(--border)"><div class="text-muted" style="font-size:13px;margin-bottom:6px">Проблема</div>${escapeHtml(r.problem)}</div>
+    </div>
+    <form id="admin-req-form">
+      <div class="form-row">
+        <div class="form-group"><label>Статус</label><select class="form-control" name="status">${statusOptions}</select></div>
+        <div class="form-group"><label>Мастер</label><select class="form-control" name="employee">${empOptions}</select></div>
+      </div>
+      <div class="form-group"><label>Комментарий</label><textarea class="form-control" name="comment" rows="2">${escapeHtml(r.adminComment||'')}</textarea></div>
+      <div class="form-group"><label>Итоговая стоимость</label><input type="number" class="form-control" name="cost" value="${r.finalCost||''}"></div>
+      <button type="submit" class="btn btn-primary btn-block">Сохранить</button>
+    </form>
+  `;
+  const modal = Modal.open(html, { large: true });
+  modal.querySelector('#admin-req-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = e.target;
+    DB.updateRequest(id, {
+      status: f.status.value,
+      employeeId: f.employee.value ? parseInt(f.employee.value, 10) : null,
+      adminComment: f.comment.value.trim(),
+      finalCost: f.cost.value ? parseInt(f.cost.value, 10) : null,
+    }, user.id, f.comment.value.trim());
+    Toast.success('Заявка обновлена');
+    Modal.close(modal);
+    render();
+  });
+}
+
+function renderReviews(el) {
+  const reviews = DB.getReviews().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  el.innerHTML = `
+    <div class="page-head"><div><h1>Отзывы</h1><p class="sub">На модерации: ${reviews.filter(r=>!r.isPublished).length}</p></div></div>
+    ${reviews.length === 0 ? `<div class="empty"><div class="ico">⭐</div><h3>Отзывов нет</h3></div>` :
+    `<div class="grid grid-2">
+      ${reviews.map(r => {
+        const u = DB.findUserById(r.clientId) || { name: 'Аноним', email: 'x' };
+        return `
+          <div class="review-card">
+            <div class="review-head">
+              ${avatarHTML(u)}
+              <div class="who">
+                <b>${escapeHtml(u.name)}</b>
+                <span class="stars">${Array.from({length:5},(_,i) => `<span class="star ${i<r.rating?'on':''}">★</span>`).join('')}</span>
+              </div>
+              <span class="date">${formatDate(r.createdAt, false)}</span>
+            </div>
+            <p class="text-soft" style="font-size:14px;margin-bottom:14px">${escapeHtml(r.text)}</p>
+            <div class="flex-between">
+              <span class="badge ${r.isPublished?'badge-completed':'badge-diagnostics'}">${r.isPublished?'Опубликован':'На модерации'}</span>
+              <div class="actions">
+                ${!r.isPublished ? `<button class="btn btn-primary btn-sm" onclick="publishReview(${r.id})">Опубликовать</button>` : ''}
+                <button class="btn btn-danger btn-sm" onclick="delReview(${r.id})">Удалить</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>`}
+  `;
+}
+function publishReview(id) { DB.updateReview(id, { isPublished: true }); Toast.success('Отзыв опубликован'); render(); }
+function delReview(id) {
+  if (!confirm('Удалить отзыв?')) return;
+  DB.deleteReview(id);
+  Toast.success('Отзыв удалён'); render();
+}
+
+function renderLeads(el) {
+  const leads = DB.getLeads().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  el.innerHTML = `
+    <div class="page-head"><div><h1>Заявки на звонок</h1><p class="sub">Всего: ${leads.length}</p></div></div>
+    ${leads.length === 0 ? `<div class="empty"><div class="ico">📞</div><h3>Заявок нет</h3></div>` :
+    `<div class="table-wrap"><table class="table">
+      <thead><tr><th>Имя</th><th>Телефон</th><th>Комментарий</th><th>Дата</th></tr></thead>
+      <tbody>${leads.map(l => `
+        <tr><td><b>${escapeHtml(l.name)}</b></td><td>${escapeHtml(l.phone)}</td><td>${escapeHtml(l.comment||'—')}</td><td>${formatDate(l.createdAt)}</td></tr>
+      `).join('')}</tbody>
+    </table></div>`}
+  `;
+}
+
+function renderUsers(el) {
+  const users = DB.getUsers();
+  el.innerHTML = `
+    <div class="page-head"><div><h1>Пользователи</h1><p class="sub">Всего: ${users.length}</p></div></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th></th><th>Имя</th><th>Email</th><th>Телефон</th><th>Роль</th></tr></thead>
+      <tbody>${users.map(u => `
+        <tr>
+          <td>${avatarHTML(u)}</td>
+          <td><b style="color:#fff">${escapeHtml(u.name)}</b></td>
+          <td>${escapeHtml(u.email)}</td>
+          <td>${escapeHtml(u.phone||'—')}</td>
+          <td><span class="badge badge-new">${u.role}</span></td>
+        </tr>
+      `).join('')}</tbody>
+    </table></div>
+  `;
+}
+
+function renderServices(el) {
+  const services = DB.getServices();
+  el.innerHTML = `
+    <div class="page-head">
+      <div><h1>Услуги</h1><p class="sub">Всего: ${services.length}</p></div>
+      <button class="btn btn-primary" onclick="editService(null)">➕ Добавить услугу</button>
+    </div>
+    <div class="grid grid-3">
+      ${services.map(s => `
+        <div class="card">
+          <div class="card-icon">${or(s.icon, '🔧')}</div>
+          <h3 style="font-size:16px">${escapeHtml(s.title)}</h3>
+          <p style="font-size:13.5px">${escapeHtml(s.description)}</p>
+          <div class="flex-between mt-3">
+            <div class="price">от ${formatPrice(s.price)}</div>
+            <span class="text-muted" style="font-size:12.5px">${s.duration} мин</span>
+          </div>
+          <div class="flex mt-3">
+            <button class="btn btn-ghost btn-sm" onclick="editService(${s.id})">✏️ Изменить</button>
+            <button class="btn btn-danger btn-sm" onclick="removeService(${s.id})">🗑 Удалить</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function editService(id) {
+  const s = id ? DB.getServices().find(x => x.id === id) : { title:'', description:'', price:0, duration:60, icon:'🔧', category:'computers', popular:false };
+  const html = `
+    <div class="modal-header">
+      <div><h2>${id ? 'Редактирование' : 'Новая услуга'}</h2><div class="sub">Заполните поля</div></div>
+      <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+    </div>
+    <form id="service-form">
+      <div class="form-group"><label>Название *</label><input class="form-control" name="title" value="${escapeHtml(s.title)}" required></div>
+      <div class="form-group"><label>Описание *</label><textarea class="form-control" name="description" rows="3" required>${escapeHtml(s.description)}</textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label>Цена, ₽ *</label><input class="form-control" type="number" name="price" value="${s.price}" required></div>
+        <div class="form-group"><label>Длительность, мин *</label><input class="form-control" type="number" name="duration" value="${s.duration}" required></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Иконка (эмодзи)</label><input class="form-control" name="icon" value="${escapeHtml(s.icon)}" placeholder="💻"></div>
+        <div class="form-group"><label>Категория</label>
+          <select class="form-control" name="category">
+            ${['computers','mobile','appliances','data','gaming','other'].map(c =>
+              `<option value="${c}" ${s.category===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" name="popular" ${s.popular?'checked':''}> Отметить как популярную</label>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">${id ? 'Сохранить' : 'Создать'}</button>
+    </form>
+  `;
+  const modal = Modal.open(html, { large: true });
+  modal.querySelector('#service-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = e.target;
+    const data = {
+      title: f.title.value.trim(),
+      description: f.description.value.trim(),
+      price: parseInt(f.price.value, 10),
+      duration: parseInt(f.duration.value, 10),
+      icon: f.icon.value.trim() || '🔧',
+      category: f.category.value,
+      popular: f.popular.checked,
+    };
+    if (id) DB.updateService(id, data);
+    else DB.createService(data);
+    Toast.success(id ? 'Услуга обновлена' : 'Услуга создана');
+    Modal.close(modal);
+    render();
+  });
+}
+
+function removeService(id) {
+  if (!confirm('Удалить услугу?')) return;
+  DB.deleteService(id);
+  Toast.success('Услуга удалена');
+  render();
+}
+
+function renderSettings(el) {
+  const s = DB.getSettings();
+  el.innerHTML = `
+    <div class="page-head"><div><h1>Настройки сайта</h1><p class="sub">Тексты и контакты</p></div></div>
+    <form id="settings-form" class="card" style="max-width:640px">
+      <h3 class="mb-3" style="font-size:16px">Контакты</h3>
+      <div class="form-row">
+        <div class="form-group"><label>Телефон</label><input class="form-control" name="phone" value="${escapeHtml(s.phone||'')}"></div>
+        <div class="form-group"><label>Email</label><input class="form-control" name="email" value="${escapeHtml(s.email||'')}"></div>
+      </div>
+      <div class="form-group"><label>Адрес</label><input class="form-control" name="address" value="${escapeHtml(s.address||'')}"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Часы работы</label><input class="form-control" name="hours" value="${escapeHtml(s.hours||'')}"></div>
+        <div class="form-group"><label>Telegram-бот</label><input class="form-control" name="telegram" value="${escapeHtml(s.telegram||'cobra_shop_support_bot')}" placeholder="cobra_shop_support_bot"></div>
+      </div>
+      <h3 class="mb-3 mt-4" style="font-size:16px">Тексты</h3>
+      <div class="form-group"><label>О компании</label><textarea class="form-control" name="about" rows="3">${escapeHtml(s.about||'')}</textarea></div>
+      <div class="form-group"><label>Заголовок на главной</label><input class="form-control" name="heroTitle" value="${escapeHtml(s.heroTitle||'')}"></div>
+      <div class="form-group"><label>Подзаголовок на главной</label><textarea class="form-control" name="heroSubtitle" rows="2">${escapeHtml(s.heroSubtitle||'')}</textarea></div>
+      <button type="submit" class="btn btn-primary">Сохранить настройки</button>
+    </form>
+  `;
+  document.getElementById('settings-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = e.target;
+    DB.updateSettings({
+      phone: f.phone.value.trim(),
+      email: f.email.value.trim(),
+      address: f.address.value.trim(),
+      hours: f.hours.value.trim(),
+      telegram: f.telegram.value.trim() || 'cobra_shop_support_bot',
+      about: f.about.value.trim(),
+      heroTitle: f.heroTitle.value.trim(),
+      heroSubtitle: f.heroSubtitle.value.trim(),
+    });
+    Toast.success('Настройки сохранены');
+    renderFooter();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  render();
+  document.querySelectorAll('.sidebar a[data-tab]').forEach(a => {
+    a.addEventListener('click', (e) => { e.preventDefault(); tab = a.dataset.tab; render(); });
+  });
+});
+</script>
+
+</body>
+</html>

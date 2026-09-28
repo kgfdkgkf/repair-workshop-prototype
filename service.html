@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Услуга — RepairWorkshop</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</a>
+    <ul class="main-menu" id="main-menu">
+      <li><a href="index.html">Главная</a></li>
+      <li><a href="services.html">Услуги</a></li>
+      <li><a href="portfolio.html">Портфолио</a></li>
+      <li><a href="reviews.html">Отзывы</a></li>
+    </ul>
+    <div class="header-actions" id="header-actions"></div>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+  </div>
+</header>
+
+<section class="section">
+  <div class="container" id="service-detail"></div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</div>
+        <p class="footer-desc" id="footer-about"></p>
+      </div>
+      <div>
+        <h4>Разделы</h4>
+        <ul>
+          <li><a href="services.html">Услуги</a></li>
+          <li><a href="portfolio.html">Портфолио</a></li>
+          <li><a href="reviews.html">Отзывы</a></li>
+          <li><a href="booking.html">Онлайн-запись</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Компания</h4>
+        <ul>
+          <li><a href="#">О нас</a></li>
+          <li><a href="#">Вакансии</a></li>
+          <li><a href="#" onclick="openCallbackModal();return false;">Контакты</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Контакты</h4>
+        <div class="footer-contacts" id="footer-contacts"></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 RepairWorkshop. Все права защищены.</span>
+      <span>Работаем для вас ежедневно</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/storage.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const id = parseInt(new URLSearchParams(location.search).get('id'), 10);
+  const s = DB.findServiceById(id);
+  const el = document.getElementById('service-detail');
+  if (!s) {
+    el.innerHTML = `<div class="empty"><div class="ico">😕</div><h3>Услуга не найдена</h3><a href="services.html" class="btn btn-primary mt-3">К списку услуг</a></div>`;
+    return;
+  }
+  const related = DB.getPortfolio().filter(p => p.serviceId === s.id).slice(0, 3);
+  el.innerHTML = `
+    <a href="services.html" class="text-muted" style="font-size:14px">← Все услуги</a>
+    <div class="grid grid-2 mt-4" style="align-items:start">
+      <div>
+        <div class="card" style="text-align:center;padding:60px 20px;background:rgba(255,255,255,.03)">
+          <div style="font-size:96px">${or(s.icon, '🔧')}</div>
+        </div>
+      </div>
+      <div>
+        <span class="section-eyebrow">Услуга</span>
+        <h1 class="section-title" style="font-size:34px">${escapeHtml(s.title)}</h1>
+        <p class="text-soft" style="font-size:16px;margin-bottom:24px">${escapeHtml(s.description)}</p>
+        <div class="card" style="margin-bottom:20px">
+          <div class="flex-between">
+            <div><div class="text-muted" style="font-size:13px">Стоимость</div><div class="price" style="font-size:24px">от ${formatPrice(s.price)}</div></div>
+            <div class="text-right"><div class="text-muted" style="font-size:13px">Длительность</div><div style="font-weight:700;font-size:18px;color:#fff">${s.duration} мин</div></div>
+          </div>
+        </div>
+        <a href="booking.html?service=${s.id}" class="btn btn-accent btn-lg btn-block">Записаться онлайн →</a>
+        <button class="btn btn-ghost btn-block mt-2" onclick="openCallbackModal()">Заказать звонок</button>
+      </div>
+    </div>
+    ${related.length ? `
+      <h2 class="section-title mt-5" style="font-size:24px">Примеры работ</h2>
+      <div class="grid grid-3 mt-4">
+        ${related.map(p => `
+          <div class="card">
+            <div style="font-size:42px;text-align:center;padding:20px 0;background:rgba(255,255,255,.03);border-radius:12px;margin-bottom:14px;border:1px solid var(--border)">${or(p.icon, '🔧')}</div>
+            <h3 style="font-size:15px">${escapeHtml(p.title)}</h3>
+            <p style="font-size:13.5px">${escapeHtml(p.description)}</p>
+          </div>
+        `).join('')}
+      </div>
+    ` : ''}
+  `;
+});
+</script>
+
+</body>
+</html>

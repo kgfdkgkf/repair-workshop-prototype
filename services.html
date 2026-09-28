@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Услуги — RepairWorkshop</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</a>
+    <ul class="main-menu" id="main-menu">
+      <li><a href="index.html">Главная</a></li>
+      <li><a href="services.html">Услуги</a></li>
+      <li><a href="portfolio.html">Портфолио</a></li>
+      <li><a href="reviews.html">Отзывы</a></li>
+      <li><a href="#" onclick="openCallbackModal();return false;">Контакты</a></li>
+    </ul>
+    <div class="header-actions" id="header-actions"></div>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+  </div>
+</header>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-eyebrow">Каталог</span>
+      <h1 class="section-title">Все услуги мастерской</h1>
+      <p class="section-subtitle">Выберите услугу и запишитесь онлайн — мастер подберётся автоматически</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="search">
+        <span class="ico">🔍</span>
+        <input type="text" id="search" placeholder="Поиск по названию или описанию...">
+      </div>
+      <div class="flex" id="category-filter">
+        <button class="chip active" data-cat="all">Все</button>
+        <button class="chip" data-cat="computers">Компьютеры</button>
+        <button class="chip" data-cat="mobile">Мобильные</button>
+        <button class="chip" data-cat="appliances">Бытовая техника</button>
+        <button class="chip" data-cat="data">Данные</button>
+        <button class="chip" data-cat="gaming">Гейминг</button>
+      </div>
+    </div>
+
+    <div class="grid grid-3" id="services-grid"></div>
+    <div id="empty-state" class="empty hidden">
+      <div class="ico">🔍</div>
+      <h3>Ничего не найдено</h3>
+      <p>Попробуйте изменить запрос или выбрать другую категорию</p>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</div>
+        <p class="footer-desc" id="footer-about"></p>
+      </div>
+      <div>
+        <h4>Разделы</h4>
+        <ul>
+          <li><a href="services.html">Услуги</a></li>
+          <li><a href="portfolio.html">Портфолио</a></li>
+          <li><a href="reviews.html">Отзывы</a></li>
+          <li><a href="booking.html">Онлайн-запись</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Компания</h4>
+        <ul>
+          <li><a href="#">О нас</a></li>
+          <li><a href="#">Вакансии</a></li>
+          <li><a href="#" onclick="openCallbackModal();return false;">Контакты</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Контакты</h4>
+        <div class="footer-contacts" id="footer-contacts"></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 RepairWorkshop. Все права защищены.</span>
+      <span>Работаем для вас ежедневно</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/storage.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+let activeCat = 'all';
+let query = '';
+
+function renderServices() {
+  const grid = document.getElementById('services-grid');
+  const empty = document.getElementById('empty-state');
+  let list = DB.getServices();
+  if (activeCat !== 'all') list = list.filter(s => s.category === activeCat);
+  if (query.trim()) {
+    const q = query.trim().toLowerCase();
+    list = list.filter(s =>
+      (s.title || '').toLowerCase().includes(q) ||
+      (s.description || '').toLowerCase().includes(q)
+    );
+  }
+  if (list.length === 0) {
+    grid.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  grid.innerHTML = list.map(s => `
+    <a href="service.html?id=${s.id}" class="card card-hover service-card" style="text-decoration:none;color:inherit">
+      ${s.popular ? '<span class="badge badge-new" style="position:absolute;top:14px;right:14px">Хит</span>' : ''}
+      <div class="card-icon">${or(s.icon, '🔧')}</div>
+      <h3>${escapeHtml(s.title)}</h3>
+      <p class="desc">${escapeHtml(s.description)}</p>
+      <div class="duration">⏱ ${s.duration} мин</div>
+      <div class="card-meta">
+        <div class="price"><small>от</small>${formatPrice(s.price)}</div>
+        <span class="btn btn-primary btn-sm">Записаться</span>
+      </div>
+    </a>
+  `).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderServices();
+  document.getElementById('search').addEventListener('input', (e) => { query = e.target.value; renderServices(); });
+  document.getElementById('category-filter').addEventListener('click', (e) => {
+    if (!e.target.classList.contains('chip')) return;
+    document.querySelectorAll('#category-filter .chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    activeCat = e.target.dataset.cat;
+    renderServices();
+  });
+});
+</script>
+
+</body>
+</html>

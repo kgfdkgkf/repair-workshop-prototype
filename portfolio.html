@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Портфолио — RepairWorkshop</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</a>
+    <ul class="main-menu" id="main-menu">
+      <li><a href="index.html">Главная</a></li>
+      <li><a href="services.html">Услуги</a></li>
+      <li><a href="portfolio.html">Портфолио</a></li>
+      <li><a href="reviews.html">Отзывы</a></li>
+    </ul>
+    <div class="header-actions" id="header-actions"></div>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+  </div>
+</header>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <span class="section-eyebrow">Наши работы</span>
+      <h1 class="section-title">Портфолио мастерской</h1>
+      <p class="section-subtitle">Реальные кейсы выполненных ремонтов</p>
+    </div>
+    <div class="toolbar" style="justify-content:center">
+      <div class="flex" id="pf-filter">
+        <button class="chip active" data-cat="all">Все</button>
+        <button class="chip" data-cat="laptops">Ноутбуки</button>
+        <button class="chip" data-cat="phones">Смартфоны</button>
+        <button class="chip" data-cat="computers">ПК</button>
+        <button class="chip" data-cat="data">Данные</button>
+        <button class="chip" data-cat="gaming">Гейминг</button>
+        <button class="chip" data-cat="tv">ТВ</button>
+      </div>
+    </div>
+    <div class="grid grid-3" id="portfolio-grid"></div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</div>
+        <p class="footer-desc" id="footer-about"></p>
+      </div>
+      <div>
+        <h4>Разделы</h4>
+        <ul>
+          <li><a href="services.html">Услуги</a></li>
+          <li><a href="portfolio.html">Портфолио</a></li>
+          <li><a href="reviews.html">Отзывы</a></li>
+          <li><a href="booking.html">Онлайн-запись</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Компания</h4>
+        <ul>
+          <li><a href="#">О нас</a></li>
+          <li><a href="#">Вакансии</a></li>
+          <li><a href="#" onclick="openCallbackModal();return false;">Контакты</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Контакты</h4>
+        <div class="footer-contacts" id="footer-contacts"></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 RepairWorkshop. Все права защищены.</span>
+      <span>Работаем для вас ежедневно</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/storage.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+let cat = 'all';
+function render() {
+  let items = DB.getPortfolio();
+  if (cat !== 'all') items = items.filter(p => p.category === cat);
+  document.getElementById('portfolio-grid').innerHTML = items.map(p => `
+    <div class="card card-hover reveal in">
+      <div style="font-size:64px;text-align:center;padding:32px 0;background:rgba(255,255,255,.03);border-radius:16px;margin-bottom:18px;border:1px solid var(--border)">${or(p.icon, '🔧')}</div>
+      <h3 style="font-size:17px">${escapeHtml(p.title)}</h3>
+      <p>${escapeHtml(p.description)}</p>
+      <div class="text-muted" style="font-size:12.5px;margin-top:8px">${formatDate(p.createdAt, false)}</div>
+    </div>
+  `).join('');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  render();
+  document.getElementById('pf-filter').addEventListener('click', e => {
+    if (!e.target.classList.contains('chip')) return;
+    document.querySelectorAll('#pf-filter .chip').forEach(c => c.classList.remove('active'));
+    e.target.classList.add('active');
+    cat = e.target.dataset.cat;
+    render();
+  });
+});
+</script>
+
+</body>
+</html>

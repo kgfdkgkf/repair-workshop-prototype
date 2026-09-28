@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RepairWorkshop — Мастерская по ремонту техники</title>
+  <meta name="description" content="Ремонт ноутбуков, смартфонов, ПК и бытовой техники. Онлайн-запись к мастеру за 1 минуту.">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</a>
+    <ul class="main-menu" id="main-menu">
+      <li><a href="index.html">Главная</a></li>
+      <li><a href="services.html">Услуги</a></li>
+      <li><a href="portfolio.html">Портфолио</a></li>
+      <li><a href="reviews.html">Отзывы</a></li>
+      <li><a href="#" onclick="openCallbackModal();return false;">Контакты</a></li>
+    </ul>
+    <div class="header-actions" id="header-actions"></div>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div>
+        <div class="hero-badge"><span class="pulse"></span> Свободные мастера сегодня</div>
+        <h1>Ремонт техники <span class="accent">быстро и с гарантией</span></h1>
+        <p class="lead">Диагностика, ремонт и восстановление данных. Онлайн-запись к мастеру за 1 минуту, честные цены и гарантия 6 месяцев.</p>
+        <div class="hero-cta">
+          <a href="booking.html" class="btn btn-accent btn-lg">Записаться онлайн →</a>
+          <a href="services.html" class="btn btn-ghost btn-lg">Наши услуги</a>
+        </div>
+        <div class="hero-stats">
+          <div class="hero-stat"><div class="num">12 500+</div><div class="lbl">Ремонтов</div></div>
+          <div class="hero-stat"><div class="num">4.9 ★</div><div class="lbl">Средняя оценка</div></div>
+          <div class="hero-stat"><div class="num">6 мес</div><div class="lbl">Гарантия</div></div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-card">
+          <h4>Популярная услуга</h4>
+          <div class="price-line">от 1 000 ₽</div>
+          <div class="hero-mini-list">
+            <div class="hero-mini"><div class="ico">💻</div><div class="body"><b>Ремонт ноутбуков</b><span>Диагностика бесплатно</span></div></div>
+            <div class="hero-mini"><div class="ico">📱</div><div class="body"><b>Ремонт смартфонов</b><span>Замена экрана за 30 мин</span></div></div>
+            <div class="hero-mini"><div class="ico">💾</div><div class="body"><b>Восстановление данных</b><span>Успешно в 95% случаев</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="section-eyebrow">Услуги</span>
+      <h2 class="section-title">Что мы ремонтируем</h2>
+      <p class="section-subtitle">Работаем с самой разной техникой — от смартфонов до стиральных машин</p>
+    </div>
+    <div class="grid grid-4" id="services-grid"></div>
+    <div class="text-center mt-4"><a href="services.html" class="btn btn-ghost">Все услуги →</a></div>
+  </div>
+</section>
+
+<section class="section" style="background:rgba(255,255,255,.015)">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="section-eyebrow">Почему мы</span>
+      <h2 class="section-title">Работаем на результат</h2>
+    </div>
+    <div class="grid grid-4">
+      <div class="card reveal"><div class="card-icon">⚡</div><h3>Быстрый ремонт</h3><p>Большинство работ выполняем за 1–2 дня.</p></div>
+      <div class="card reveal"><div class="card-icon">🛡️</div><h3>Гарантия 6 месяцев</h3><p>На все работы и запчасти даём официальную гарантию.</p></div>
+      <div class="card reveal"><div class="card-icon">💰</div><h3>Честные цены</h3><p>Стоимость известна до начала ремонта. Без доплат.</p></div>
+      <div class="card reveal"><div class="card-icon">🔬</div><h3>Бесплатная диагностика</h3><p>Оценим состояние устройства и назовём точную цену.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="section-eyebrow">Портфолио</span>
+      <h2 class="section-title">Последние работы</h2>
+      <p class="section-subtitle">Показываем реальные кейсы, а не картинки из интернета</p>
+    </div>
+    <div class="grid grid-3" id="portfolio-grid"></div>
+    <div class="text-center mt-4"><a href="portfolio.html" class="btn btn-ghost">Всё портфолио →</a></div>
+  </div>
+</section>
+
+<section class="section" style="background:rgba(255,255,255,.015)">
+  <div class="container">
+    <div class="section-head reveal">
+      <span class="section-eyebrow">Отзывы</span>
+      <h2 class="section-title">Что говорят клиенты</h2>
+    </div>
+    <div class="grid grid-3" id="reviews-grid"></div>
+    <div class="text-center mt-4"><a href="reviews.html" class="btn btn-ghost">Все отзывы →</a></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container" style="max-width:800px">
+    <div class="section-head reveal">
+      <span class="section-eyebrow">FAQ</span>
+      <h2 class="section-title">Частые вопросы</h2>
+    </div>
+    <div class="card reveal">
+      <div class="faq-item">
+        <button class="faq-q">Сколько стоит диагностика? <span class="plus">+</span></button>
+        <div class="faq-a"><p>Диагностика бесплатная. Оплачиваете только ремонт, если согласны с ценой.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Как быстро вы работаете? <span class="plus">+</span></button>
+        <div class="faq-a"><p>Средний срок ремонта — 1–2 дня. Срочный ремонт возможен в день обращения.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Есть ли гарантия? <span class="plus">+</span></button>
+        <div class="faq-a"><p>Да, на все работы и запчасти — гарантия 6 месяцев.</p></div>
+      </div>
+      <div class="faq-item">
+        <button class="faq-q">Можно ли записаться онлайн? <span class="plus">+</span></button>
+        <div class="faq-a"><p>Да, через форму онлайн-записи. Выберите услугу, мастера и удобное время.</p></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="cta-box reveal">
+      <h2>Не нашли нужную услугу?</h2>
+      <p>Оставьте заявку — мы свяжемся и подберём оптимальное решение</p>
+      <button class="btn btn-accent btn-lg" onclick="openCallbackModal()">Заказать звонок</button>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</div>
+        <p class="footer-desc" id="footer-about"></p>
+      </div>
+      <div>
+        <h4>Разделы</h4>
+        <ul>
+          <li><a href="services.html">Услуги</a></li>
+          <li><a href="portfolio.html">Портфолио</a></li>
+          <li><a href="reviews.html">Отзывы</a></li>
+          <li><a href="booking.html">Онлайн-запись</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Компания</h4>
+        <ul>
+          <li><a href="#">О нас</a></li>
+          <li><a href="#">Вакансии</a></li>
+          <li><a href="#" onclick="openCallbackModal();return false;">Контакты</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Контакты</h4>
+        <div class="footer-contacts" id="footer-contacts"></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 RepairWorkshop. Все права защищены.</span>
+      <span>Работаем для вас ежедневно</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/storage.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const services = DB.getServices().slice(0, 4);
+  const sGrid = document.getElementById('services-grid');
+  if (sGrid) {
+    sGrid.innerHTML = services.map(s => `
+      <a href="service.html?id=${s.id}" class="card card-hover service-card reveal" style="text-decoration:none;color:inherit">
+        <div class="card-icon">${or(s.icon, '🔧')}</div>
+        <h3>${escapeHtml(s.title)}</h3>
+        <p class="desc">${escapeHtml(s.description)}</p>
+        <div class="card-meta">
+          <div class="price"><small>от</small>${formatPrice(s.price)}</div>
+          <span class="text-muted" style="font-size:12.5px">${s.duration} мин</span>
+        </div>
+      </a>
+    `).join('');
+  }
+
+  const portfolio = DB.getPortfolio().slice(0, 3);
+  const pGrid = document.getElementById('portfolio-grid');
+  if (pGrid) {
+    pGrid.innerHTML = portfolio.map(p => `
+      <div class="card card-hover reveal">
+        <div style="font-size:48px;text-align:center;padding:24px 0;background:rgba(255,255,255,.03);border-radius:14px;margin-bottom:16px;border:1px solid var(--border)">${or(p.icon, '🔧')}</div>
+        <h3 style="font-size:16px">${escapeHtml(p.title)}</h3>
+        <p>${escapeHtml(p.description)}</p>
+      </div>
+    `).join('');
+  }
+
+  const reviews = DB.getPublishedReviews().slice(0, 3);
+  const rGrid = document.getElementById('reviews-grid');
+  if (rGrid) {
+    rGrid.innerHTML = reviews.map(r => {
+      const u = DB.findUserById(r.clientId) || { name: 'Клиент', email: 'x' };
+      const stars = '<span class="stars">' + Array.from({length:5}, (_,i) =>
+        `<span class="star ${i < r.rating ? 'on' : ''}">★</span>`).join('') + '</span>';
+      return `
+        <div class="review-card reveal">
+          <div class="review-head">
+            ${avatarHTML(u)}
+            <div class="who"><b>${escapeHtml(u.name)}</b>${stars}</div>
+            <span class="date">${formatDate(r.createdAt, false)}</span>
+          </div>
+          <p class="text-soft" style="font-size:14.5px">${escapeHtml(r.text)}</p>
+        </div>
+      `;
+    }).join('');
+  }
+
+  initScrollEffects();
+});
+</script>
+
+</body>
+</html>

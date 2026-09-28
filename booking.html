@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Онлайн-запись — RepairWorkshop</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</a>
+    <ul class="main-menu" id="main-menu">
+      <li><a href="index.html">Главная</a></li>
+      <li><a href="services.html">Услуги</a></li>
+      <li><a href="portfolio.html">Портфолио</a></li>
+      <li><a href="reviews.html">Отзывы</a></li>
+    </ul>
+    <div class="header-actions" id="header-actions"></div>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+  </div>
+</header>
+
+<section class="section">
+  <div class="container" style="max-width:760px">
+    <div class="section-head">
+      <span class="section-eyebrow">Онлайн-запись</span>
+      <h1 class="section-title">Запись к мастеру</h1>
+      <p class="section-subtitle">Выберите услугу, мастера и удобное время</p>
+    </div>
+
+    <div class="steps" id="steps">
+      <div class="step active" data-step="1"><span class="num">1</span><span>Услуга</span></div>
+      <div class="step" data-step="2"><span class="num">2</span><span>Устройство</span></div>
+      <div class="step" data-step="3"><span class="num">3</span><span>Мастер и время</span></div>
+      <div class="step" data-step="4"><span class="num">4</span><span>Подтверждение</span></div>
+    </div>
+
+    <div class="card" id="step-body"></div>
+
+    <div class="flex-between mt-4">
+      <button class="btn btn-ghost" id="btn-prev" onclick="prevStep()">← Назад</button>
+      <button class="btn btn-primary" id="btn-next" onclick="nextStep()">Далее →</button>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <div class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</div>
+        <p class="footer-desc" id="footer-about"></p>
+      </div>
+      <div>
+        <h4>Разделы</h4>
+        <ul>
+          <li><a href="services.html">Услуги</a></li>
+          <li><a href="portfolio.html">Портфолио</a></li>
+          <li><a href="reviews.html">Отзывы</a></li>
+          <li><a href="booking.html">Онлайн-запись</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Компания</h4>
+        <ul>
+          <li><a href="#">О нас</a></li>
+          <li><a href="#">Вакансии</a></li>
+          <li><a href="#" onclick="openCallbackModal();return false;">Контакты</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Контакты</h4>
+        <div class="footer-contacts" id="footer-contacts"></div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 RepairWorkshop. Все права защищены.</span>
+      <span>Работаем для вас ежедневно</span>
+    </div>
+  </div>
+</footer>
+
+<script src="js/storage.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+if (!Auth.requireAuth('login.html')) throw new Error('redirect');
+const user = Auth.current();
+
+const state = {
+  step: 1,
+  serviceId: null,
+  deviceType: '', brand: '', model: '',
+  employeeId: null,
+  date: new Date().toISOString().slice(0,10),
+  time: null,
+  problem: '',
+};
+
+const preService = new URLSearchParams(location.search).get('service');
+if (preService) state.serviceId = parseInt(preService, 10);
+
+const EMPLOYEES = DB.getUsers().filter(u => u.role === 'employee');
+
+function renderSteps() {
+  document.querySelectorAll('.step').forEach(el => {
+    const n = parseInt(el.dataset.step, 10);
+    el.classList.toggle('active', n === state.step);
+    el.classList.toggle('done', n < state.step);
+  });
+  document.getElementById('btn-prev').style.visibility = state.step === 1 ? 'hidden' : 'visible';
+  document.getElementById('btn-next').textContent = state.step === 4 ? 'Отправить заявку' : 'Далее →';
+}
+
+function renderBody() {
+  const el = document.getElementById('step-body');
+  if (state.step === 1) {
+    el.innerHTML = `
+      <h3 class="mb-3" style="color:#fff">Выберите услугу</h3>
+      <div class="select-grid">
+        ${DB.getServices().map(s => `
+          <div class="select-card ${state.serviceId===s.id?'selected':''}" onclick="pickService(${s.id})">
+            <div class="ico">${or(s.icon, '🔧')}</div>
+            <div>
+              <b>${escapeHtml(s.title)}</b>
+              <span>от ${formatPrice(s.price)} · ${s.duration} мин</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+  if (state.step === 2) {
+    el.innerHTML = `
+      <h3 class="mb-3" style="color:#fff">Информация об устройстве</h3>
+      <div class="form-group">
+        <label>Тип устройства *</label>
+        <input class="form-control" id="f-device" value="${escapeHtml(state.deviceType)}" placeholder="Ноутбук, смартфон, ТВ...">
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Бренд</label><input class="form-control" id="f-brand" value="${escapeHtml(state.brand)}" placeholder="Apple, Samsung, HP..."></div>
+        <div class="form-group"><label>Модель</label><input class="form-control" id="f-model" value="${escapeHtml(state.model)}" placeholder="MacBook Pro 2020"></div>
+      </div>
+      <div class="form-group">
+        <label>Описание проблемы *</label>
+        <textarea class="form-control" id="f-problem" rows="4" placeholder="Расскажите, что случилось">${escapeHtml(state.problem)}</textarea>
+      </div>
+    `;
+  }
+  if (state.step === 3) {
+    const slots = DB.getAvailableSlots(state.date, state.employeeId, 60);
+    el.innerHTML = `
+      <h3 class="mb-3" style="color:#fff">Мастер и время</h3>
+      <label style="font-weight:600;font-size:13.5px;color:var(--text-soft);margin-bottom:8px;display:block">Мастер (необязательно)</label>
+      <div class="select-grid mb-4">
+        <div class="select-card ${state.employeeId===null?'selected':''}" onclick="pickEmployee(null)">
+          <div class="ico">🎯</div>
+          <div><b>Любой свободный</b><span>Подберём автоматически</span></div>
+        </div>
+        ${EMPLOYEES.map(e => `
+          <div class="select-card ${state.employeeId===e.id?'selected':''}" onclick="pickEmployee(${e.id})">
+            ${avatarHTML(e)}
+            <div><b>${escapeHtml(e.name)}</b><span>${escapeHtml(e.specialization || 'Мастер')}</span></div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="form-group">
+        <label>Дата *</label>
+        <input type="date" class="form-control" id="f-date" value="${state.date}" min="${new Date().toISOString().slice(0,10)}">
+      </div>
+      <label style="font-weight:600;font-size:13.5px;color:var(--text-soft);margin-bottom:10px;display:block">Время *</label>
+      <div class="slots">
+        ${slots.map(s => `
+          <button type="button" class="slot ${s.disabled?'disabled':''} ${state.time===s.time?'selected':''}"
+            ${s.disabled?'disabled':''}
+            onclick="pickTime('${s.time}')">${s.time}</button>
+        `).join('')}
+      </div>
+    `;
+    const dateInput = document.getElementById('f-date');
+    if (dateInput) {
+      dateInput.addEventListener('change', (e) => {
+        state.date = e.target.value;
+        state.time = null;
+        renderBody();
+      });
+    }
+  }
+  if (state.step === 4) {
+    const s = DB.findServiceById(state.serviceId);
+    const emp = state.employeeId ? DB.findUserById(state.employeeId) : null;
+    el.innerHTML = `
+      <h3 class="mb-3" style="color:#fff">Проверьте заявку</h3>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div class="flex-between"><span class="text-muted">Услуга</span><b>${s ? escapeHtml(s.title) : '—'}</b></div>
+        <div class="flex-between"><span class="text-muted">Стоимость</span><b>от ${s ? formatPrice(s.price) : '—'}</b></div>
+        <div class="flex-between"><span class="text-muted">Устройство</span><b>${escapeHtml(state.deviceType)} ${escapeHtml(state.brand)} ${escapeHtml(state.model)}</b></div>
+        <div class="flex-between"><span class="text-muted">Мастер</span><b>${emp ? escapeHtml(emp.name) : 'Любой свободный'}</b></div>
+        <div class="flex-between"><span class="text-muted">Дата и время</span><b>${state.date} в ${state.time || '—'}</b></div>
+        <div style="padding-top:12px;border-top:1px solid var(--border)">
+          <div class="text-muted" style="font-size:13px;margin-bottom:6px">Описание проблемы</div>
+          <p>${escapeHtml(state.problem)}</p>
+        </div>
+      </div>
+      <div class="alert alert-info mt-3">Мы свяжемся с вами для подтверждения записи.</div>
+    `;
+  }
+}
+
+function pickService(id) { state.serviceId = id; renderBody(); }
+function pickEmployee(id) { state.employeeId = id; renderBody(); }
+function pickTime(t) { state.time = t; renderBody(); }
+
+function validateStep() {
+  if (state.step === 1 && !state.serviceId) { Toast.error('Выберите услугу'); return false; }
+  if (state.step === 2) {
+    const dev = document.getElementById('f-device');
+    const br = document.getElementById('f-brand');
+    const md = document.getElementById('f-model');
+    const pr = document.getElementById('f-problem');
+    if (dev) state.deviceType = dev.value.trim();
+    if (br) state.brand = br.value.trim();
+    if (md) state.model = md.value.trim();
+    if (pr) state.problem = pr.value.trim();
+    if (!state.deviceType) { Toast.error('Укажите тип устройства'); return false; }
+    if (!state.problem) { Toast.error('Опишите проблему'); return false; }
+  }
+  if (state.step === 3 && !state.time) { Toast.error('Выберите время'); return false; }
+  return true;
+}
+
+function nextStep() {
+  if (!validateStep()) return;
+  if (state.step < 4) {
+    state.step++;
+    renderSteps(); renderBody();
+    window.scrollTo({ top: 200, behavior: 'smooth' });
+  } else {
+    submit();
+  }
+}
+function prevStep() {
+  if (state.step > 1) { state.step--; renderSteps(); renderBody(); }
+}
+function submit() {
+  const s = DB.findServiceById(state.serviceId);
+  DB.createRequest({
+    clientId: user.id,
+    serviceId: state.serviceId,
+    deviceType: state.deviceType,
+    brand: state.brand,
+    model: state.model,
+    problem: state.problem,
+    scheduledAt: `${state.date}T${state.time}`,
+    employeeId: state.employeeId,
+    duration: s ? s.duration : 60,
+  });
+  Toast.success('Мы свяжемся с вами для подтверждения', 'Заявка отправлена!');
+  setTimeout(() => window.location.href = 'cabinet.html', 900);
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderSteps(); renderBody();
+});
+</script>
+
+</body>
+</html>

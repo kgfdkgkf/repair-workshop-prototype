@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кабинет мастера — RepairWorkshop</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="logo"><span class="logo-mark">🛠️</span> RepairWorkshop</a>
+    <ul class="main-menu" id="main-menu">
+      <li><a href="index.html">Главная</a></li>
+      <li><a href="services.html">Услуги</a></li>
+    </ul>
+    <div class="header-actions" id="header-actions"></div>
+    <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+  </div>
+</header>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="side-label">Работа</div>
+    <a href="#" class="active" data-tab="overview"><span class="ico">📊</span> Обзор</a>
+    <a href="#" data-tab="tasks"><span class="ico">📋</span> Мои заявки</a>
+    <a href="#" data-tab="schedule"><span class="ico">📅</span> Расписание</a>
+    <a href="#" data-tab="profile"><span class="ico">👤</span> Профиль</a>
+  </aside>
+  <main class="app-main"><div id="content"></div></main>
+</div>
+
+<script src="js/storage.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/main.js"></script>
+<script>
+if (!Auth.requireAuth('login.html')) throw new Error('redirect');
+const user = Auth.current();
+if (user.role !== 'employee') {
+  Toast.error('Доступ только для мастеров');
+  setTimeout(() => location.href = 'index.html', 800);
+}
+
+let tab = 'overview';
+
+function render() {
+  document.querySelectorAll('.sidebar a[data-tab]').forEach(a => a.classList.toggle('active', a.dataset.tab === tab));
+  const el = document.getElementById('content');
+  if (tab === 'overview') return renderOverview(el);
+  if (tab === 'tasks') return renderTasks(el);
+  if (tab === 'schedule') return renderSchedule(el);
+  if (tab === 'profile') return renderProfile(el);
+}
+
+function myRequests() { return DB.getRequestsByEmployee(user.id); }
+
+function renderOverview(el) {
+  const all = myRequests();
+  const active = all.filter(r => !['completed','canceled'].includes(r.status)).length;
+  const done = all.filter(r => r.status === 'completed').length;
+  const today = all.filter(r => r.scheduledAt && r.scheduledAt.startsWith(new Date().toISOString().slice(0,10)) && !['completed','canceled'].includes(r.status));
+
+  el.innerHTML = `
+    <div class="page-head"><div><h1>Привет, ${escapeHtml(user.name.split(' ')[0])} 👋</h1><p class="sub">${escapeHtml(user.specialization||'Мастер')}</p></div></div>
+    <div class="grid grid-4">
+      <div class="stat-card"><div class="stat-icon">📋</div><div><div class="num">${all.length}</div><div class="lbl">Всего заявок</div></div></div>
+      <div class="stat-card"><div class="stat-icon amber">⏳</div><div><div class="num">${active}</div><div class="lbl">В работе</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">✅</div><div><div class="num">${done}</div><div class="lbl">Завершено</div></div></div>
+      <div class="stat-card"><div class="stat-icon cyan">📅</div><div><div class="num">${today.length}</div><div class="lbl">Сегодня</div></div></div>
+    </div>
+    <h2 style="font-size:20px;margin:36px 0 16px">Задачи на сегодня</h2>
+    ${today.length === 0
+      ? `<div class="empty"><div class="ico">☕</div><h3>На сегодня задач нет</h3></div>`
+      : today.map(r => taskCard(r)).join('')}
+  `;
+}
+
+function renderTasks(el) {
+  const all = myRequests().sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  el.innerHTML = `
+    <div class="page-head"><div><h1>Мои заявки</h1><p class="sub">Всего: ${all.length}</p></div></div>
+    ${all.length === 0
+      ? `<div class="empty"><div class="ico">📭</div><h3>Заявок нет</h3></div>`
+      : all.map(r => taskCard(r)).join('')}
+  `;
+}
+
+function taskCard(r) {
+  const s = DB.findServiceById(r.serviceId);
+  const client = DB.findUserById(r.clientId);
+  return `
+    <div class="card" style="margin-bottom:14px">
+      <div class="flex-between mb-3">
+        <div class="flex">
+          <div class="card-icon" style="width:44px;height:44px;font-size:20px;margin:0">${s ? or(s.icon,'🔧') : '🔧'}</div>
+          <div><b style="color:#fff">#${r.id} — ${s ? escapeHtml(s.title) : 'Услуга'}</b><div class="text-muted" style="font-size:13px">${client ? escapeHtml(client.name) : 'Клиент'}</div></div>
+        </div>
+        ${statusBadge(r.status)}
+      </div>
+      <div class="grid grid-3" style="gap:12px;font-size:13.5px">
+        <div><div class="text-muted">Устройство</div><b>${escapeHtml(r.deviceType)} ${escapeHtml(r.brand||'')} ${escapeHtml(r.model||'')}</b></div>
+        <div><div class="text-muted">Запись</div><b>${formatDate(r.scheduledAt)}</b></div>
+        <div><div class="text-muted">Телефон</div><b>${client ? escapeHtml(client.phone||'') : '—'}</b></div>
+      </div>
+      <p class="mt-3 text-soft" style="font-size:13.5px"><b style="color:#fff">Проблема:</b> ${escapeHtml(r.problem)}</p>
+      <div class="mt-3 flex">
+        <button class="btn btn-ghost btn-sm" onclick="openTask(${r.id})">Открыть</button>
+        ${r.status !== 'completed' && r.status !== 'canceled' ? `<button class="btn btn-primary btn-sm" onclick="quickStatus(${r.id})">Следующий статус</button>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function openTask(id) {
+  const r = DB.getRequests().find(x => x.id === id);
+  if (!r) return;
+  const s = DB.findServiceById(r.serviceId);
+  const client = DB.findUserById(r.clientId);
+  const statusOptions = STATUS_ORDER.map(x => `<option value="${x}" ${r.status===x?'selected':''}>${statusLabel(x)}</option>`).join('');
+  const html = `
+    <div class="modal-header">
+      <div><h2>Заявка #${r.id}</h2><div class="sub">${s ? escapeHtml(s.title) : ''}</div></div>
+      <button class="modal-close" onclick="this.closest('.modal').remove()">×</button>
+    </div>
+    <div class="mb-3">${statusBadge(r.status)}</div>
+    <div style="display:flex;flex-direction:column;gap:8px;font-size:14px;margin-bottom:20px">
+      <div class="flex-between"><span class="text-muted">Клиент</span><b>${client ? escapeHtml(client.name) : '—'}</b></div>
+      <div class="flex-between"><span class="text-muted">Телефон</span><b>${client ? escapeHtml(client.phone||'—') : '—'}</b></div>
+      <div class="flex-between"><span class="text-muted">Устройство</span><b>${escapeHtml(r.deviceType)} ${escapeHtml(r.brand||'')} ${escapeHtml(r.model||'')}</b></div>
+      <div class="flex-between"><span class="text-muted">Запись</span><b>${formatDate(r.scheduledAt)}</b></div>
+    </div>
+    <form id="task-form">
+      <div class="form-group"><label>Новый статус</label><select class="form-control" name="status">${statusOptions}</select></div>
+      <div class="form-group"><label>Комментарий (виден клиенту)</label><textarea class="form-control" name="comment" rows="2">${escapeHtml(r.adminComment||'')}</textarea></div>
+      <div class="form-group"><label>Итоговая стоимость</label><input type="number" class="form-control" name="cost" value="${r.finalCost||''}" placeholder="0"></div>
+      <button type="submit" class="btn btn-primary btn-block">Сохранить</button>
+    </form>
+  `;
+  const modal = Modal.open(html, { large: true });
+  modal.querySelector('#task-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = e.target;
+    DB.updateRequest(id, {
+      status: f.status.value,
+      adminComment: f.comment.value.trim(),
+      finalCost: f.cost.value ? parseInt(f.cost.value, 10) : null,
+    }, user.id, f.comment.value.trim());
+    Toast.success('Заявка обновлена');
+    Modal.close(modal);
+    render();
+  });
+}
+
+function quickStatus(id) {
+  const r = DB.getRequests().find(x => x.id === id);
+  if (!r) return;
+  const idx = STATUS_ORDER.indexOf(r.status);
+  const next = STATUS_ORDER[Math.min(idx+1, STATUS_ORDER.length-2)];
+  DB.updateRequest(id, { status: next }, user.id, 'Статус изменён мастером');
+  Toast.success('Статус: ' + statusLabel(next));
+  render();
+}
+
+function renderSchedule(el) {
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(); d.setDate(d.getDate() + i);
+    days.push(d.toISOString().slice(0,10));
+  }
+  el.innerHTML = `
+    <div class="page-head"><div><h1>Расписание на неделю</h1><p class="sub">Ваши загруженные дни</p></div></div>
+    <div class="grid" style="grid-template-columns:repeat(7,1fr);gap:10px">
+      ${days.map(d => {
+        const list = myRequests().filter(r => r.scheduledAt && r.scheduledAt.startsWith(d) && !['completed','canceled'].includes(r.status));
+        const date = new Date(d);
+        const isToday = d === new Date().toISOString().slice(0,10);
+        return `
+          <div class="card" style="${isToday ? 'border-color:var(--primary);box-shadow:var(--glow)' : ''}">
+            <div class="text-center mb-3">
+              <div class="text-muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.05em">${date.toLocaleDateString('ru-RU',{weekday:'short'})}</div>
+              <div style="font-size:20px;font-weight:800;font-family:'Manrope',sans-serif;color:#fff">${date.getDate()}</div>
+            </div>
+            ${list.length === 0
+              ? `<div class="text-center text-muted" style="font-size:12px">—</div>`
+              : list.map(r => {
+                const t = r.scheduledAt.split('T')[1].slice(0,5);
+                return `<div style="background:rgba(124,92,255,.14);border-radius:8px;padding:8px;margin-bottom:6px;font-size:12px;border:1px solid rgba(124,92,255,.3)">
+                  <b style="color:#fff">${t}</b><br><span class="text-muted">#${r.id}</span>
+                </div>`;
+              }).join('')}
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderProfile(el) {
+  el.innerHTML = `
+    <div class="page-head"><div><h1>Профиль</h1></div></div>
+    <div class="card" style="max-width:560px">
+      <div class="flex mb-4">${avatarHTML(user, 'avatar-lg')}<div><b style="font-size:18px;color:#fff">${escapeHtml(user.name)}</b><div class="text-muted">${escapeHtml(user.email)}</div></div></div>
+      <form id="profile-form">
+        <div class="form-group"><label>Имя</label><input class="form-control" name="name" value="${escapeHtml(user.name)}"></div>
+        <div class="form-group"><label>Специализация</label><input class="form-control" name="spec" value="${escapeHtml(user.specialization||'')}"></div>
+        <div class="form-group"><label>Телефон</label><input class="form-control" name="phone" value="${escapeHtml(user.phone||'')}"></div>
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+      </form>
+    </div>
+  `;
+  document.getElementById('profile-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const f = e.target;
+    DB.updateUser(user.id, { name: f.name.value, specialization: f.spec.value, phone: f.phone.value });
+    Toast.success('Профиль обновлён');
+    setTimeout(() => location.reload(), 600);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  render();
+  document.querySelectorAll('.sidebar a[data-tab]').forEach(a => {
+    a.addEventListener('click', (e) => { e.preventDefault(); tab = a.dataset.tab; render(); });
+  });
+});
+</script>
+
+</body>
+</html>
