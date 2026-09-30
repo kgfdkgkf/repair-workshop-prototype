@@ -9,11 +9,15 @@ const DB = {
     leads: 'rw_leads',
     portfolio: 'rw_portfolio',
     settings: 'rw_settings',
+    deviceTypes: 'rw_device_types',
+    deviceBrands: 'rw_device_brands',
+    deviceModels: 'rw_device_models',
+    commonProblems: 'rw_common_problems',
     currentUser: 'rw_current_user',
     nextId: 'rw_next_id',
   },
 
-  SCHEMA_VERSION: '3',
+  SCHEMA_VERSION: '5',
 
   init() {
     if (localStorage.getItem('rw_schema') !== this.SCHEMA_VERSION) {
@@ -22,6 +26,10 @@ const DB = {
       localStorage.removeItem(this.KEYS.portfolio);
       localStorage.removeItem(this.KEYS.reviews);
       localStorage.removeItem(this.KEYS.settings);
+      localStorage.removeItem(this.KEYS.deviceTypes);
+      localStorage.removeItem(this.KEYS.deviceBrands);
+      localStorage.removeItem(this.KEYS.deviceModels);
+      localStorage.removeItem(this.KEYS.commonProblems);
       localStorage.setItem('rw_schema', this.SCHEMA_VERSION);
     }
     if (!localStorage.getItem(this.KEYS.services)) this.seedServices();
@@ -29,6 +37,10 @@ const DB = {
     if (!localStorage.getItem(this.KEYS.portfolio)) this.seedPortfolio();
     if (!localStorage.getItem(this.KEYS.reviews)) this.seedReviews();
     if (!localStorage.getItem(this.KEYS.settings)) this.seedSettings();
+    if (!localStorage.getItem(this.KEYS.deviceTypes)) this.seedDeviceTypes();
+    if (!localStorage.getItem(this.KEYS.deviceBrands)) this.seedDeviceBrands();
+    if (!localStorage.getItem(this.KEYS.deviceModels)) this.seedDeviceModels();
+    if (!localStorage.getItem(this.KEYS.commonProblems)) this.seedCommonProblems();
     if (!localStorage.getItem(this.KEYS.requests)) localStorage.setItem(this.KEYS.requests, '[]');
     if (!localStorage.getItem(this.KEYS.leads)) localStorage.setItem(this.KEYS.leads, '[]');
     if (!localStorage.getItem(this.KEYS.nextId)) localStorage.setItem(this.KEYS.nextId, '1000');
@@ -42,17 +54,21 @@ const DB = {
   get(key) { return JSON.parse(localStorage.getItem(key) || '[]'); },
   set(key, value) { localStorage.setItem(key, JSON.stringify(value)); },
 
-  // ---------- Services ----------
+  // ============================================================
+  // SERVICES
+  // device_types — массив id типов устройств, к которым применима услуга.
+  // [] — значит применима ко всем типам.
+  // ============================================================
   seedServices() {
     const services = [
-      { id: 1, title: 'Ремонт ноутбуков', category: 'computers', price: 1500, duration: 60, description: 'Диагностика, замена матриц, клавиатур, чистка системы охлаждения.', icon: '💻', popular: true },
-      { id: 2, title: 'Ремонт смартфонов', category: 'mobile', price: 1000, duration: 45, description: 'Замена экранов, батарей, разъёмов, восстановление после воды.', icon: '📱', popular: true },
-      { id: 3, title: 'Ремонт компьютеров', category: 'computers', price: 1200, duration: 90, description: 'Апгрейд, замена комплектующих, установка ПО, чистка от пыли.', icon: '🖥️', popular: true },
-      { id: 4, title: 'Ремонт телевизоров', category: 'appliances', price: 2000, duration: 120, description: 'Диагностика и ремонт ЖК и LED телевизоров любых марок.', icon: '📺', popular: false },
-      { id: 5, title: 'Ремонт планшетов', category: 'mobile', price: 1300, duration: 60, description: 'Замена стёкол, аккумуляторов, ремонт материнских плат.', icon: '📲', popular: false },
-      { id: 6, title: 'Восстановление данных', category: 'data', price: 2500, duration: 180, description: 'Восстановление информации с HDD, SSD, флешек и карт памяти.', icon: '💾', popular: true },
-      { id: 7, title: 'Ремонт стиральных машин', category: 'appliances', price: 2200, duration: 90, description: 'Замена подшипников, насосов, электроники, диагностика.', icon: '🧺', popular: false },
-      { id: 8, title: 'Ремонт игровых консолей', category: 'gaming', price: 1800, duration: 75, description: 'Чистка, замена термопасты, ремонт контроллеров, HDMI-портов.', icon: '🎮', popular: true },
+      { id: 1, title: 'Ремонт ноутбуков', category: 'computers', price: 1500, duration: 60, description: 'Диагностика, замена матриц, клавиатур, чистка системы охлаждения.', icon: '💻', popular: true, device_types: [1] },
+      { id: 2, title: 'Ремонт смартфонов', category: 'mobile', price: 1000, duration: 45, description: 'Замена экранов, батарей, разъёмов, восстановление после воды.', icon: '📱', popular: true, device_types: [2] },
+      { id: 3, title: 'Ремонт компьютеров', category: 'computers', price: 1200, duration: 90, description: 'Апгрейд, замена комплектующих, установка ПО, чистка от пыли.', icon: '🖥️', popular: true, device_types: [3] },
+      { id: 4, title: 'Ремонт телевизоров', category: 'appliances', price: 2000, duration: 120, description: 'Диагностика и ремонт ЖК и LED телевизоров любых марок.', icon: '📺', popular: false, device_types: [5] },
+      { id: 5, title: 'Ремонт планшетов', category: 'mobile', price: 1300, duration: 60, description: 'Замена стёкол, аккумуляторов, ремонт материнских плат.', icon: '📲', popular: false, device_types: [4] },
+      { id: 6, title: 'Восстановление данных', category: 'data', price: 2500, duration: 180, description: 'Восстановление информации с HDD, SSD, флешек и карт памяти.', icon: '💾', popular: true, device_types: [1, 2, 3, 4] },
+      { id: 7, title: 'Ремонт стиральных машин', category: 'appliances', price: 2200, duration: 90, description: 'Замена подшипников, насосов, электроники, диагностика.', icon: '🧺', popular: false, device_types: [7] },
+      { id: 8, title: 'Ремонт игровых консолей', category: 'gaming', price: 1800, duration: 75, description: 'Чистка, замена термопасты, ремонт контроллеров, HDMI-портов.', icon: '🎮', popular: true, device_types: [6] },
     ];
     this.set(this.KEYS.services, services);
   },
@@ -62,13 +78,19 @@ const DB = {
       icon: s.icon || s.image || '🔧',
       category: s.category || 'other',
       popular: !!s.popular,
+      device_types: Array.isArray(s.device_types) ? s.device_types : [],
     }));
   },
   findServiceById(id) { return this.getServices().find(s => s.id === id); },
   saveServices(list) { this.set(this.KEYS.services, list); },
   createService(data) {
     const list = this.get(this.KEYS.services);
-    const item = { id: this.nextId(), ...data, popular: !!data.popular };
+    const item = {
+      id: this.nextId(),
+      ...data,
+      popular: !!data.popular,
+      device_types: Array.isArray(data.device_types) ? data.device_types : [],
+    };
     list.push(item);
     this.saveServices(list);
     return item;
@@ -82,11 +104,12 @@ const DB = {
     return list[idx];
   },
   deleteService(id) {
-    const list = this.get(this.KEYS.services).filter(s => s.id !== id);
-    this.saveServices(list);
+    this.saveServices(this.get(this.KEYS.services).filter(s => s.id !== id));
   },
 
-  // ---------- Users ----------
+  // ============================================================
+  // USERS
+  // ============================================================
   seedUsers() {
     const users = [
       { id: 1, name: 'Александр Админов', email: 'admin@repair.local', phone: '+7 900 000-00-01', password: 'admin123', role: 'admin', createdAt: '2025-01-10T10:00:00Z' },
@@ -116,7 +139,9 @@ const DB = {
     return users[idx];
   },
 
-  // ---------- Session ----------
+  // ============================================================
+  // SESSION
+  // ============================================================
   getCurrentUser() {
     const id = localStorage.getItem(this.KEYS.currentUser);
     if (!id) return null;
@@ -127,7 +152,9 @@ const DB = {
     else localStorage.removeItem(this.KEYS.currentUser);
   },
 
-  // ---------- Requests ----------
+  // ============================================================
+  // REQUESTS
+  // ============================================================
   getRequests() { return this.get(this.KEYS.requests); },
   saveRequests(r) { this.set(this.KEYS.requests, r); },
   createRequest(data) {
@@ -144,6 +171,13 @@ const DB = {
       history: [{ status: 'new', comment: 'Заявка создана', at: new Date().toISOString(), by: data.clientId }],
     };
     reqs.push(req); this.saveRequests(reqs);
+
+    // Считаем популярность
+    if (data.deviceBrandId) this.incrementPopularity(this.KEYS.deviceBrands, data.deviceBrandId);
+    if (data.deviceModelId) this.incrementPopularity(this.KEYS.deviceModels, data.deviceModelId);
+    if (Array.isArray(data.problemTagIds)) {
+      data.problemTagIds.forEach(id => this.incrementPopularity(this.KEYS.commonProblems, id));
+    }
     return req;
   },
   updateRequest(id, patch, byUserId, statusComment = '') {
@@ -161,7 +195,9 @@ const DB = {
   getRequestsByClient(clientId) { return this.getRequests().filter(r => r.clientId === clientId); },
   getRequestsByEmployee(employeeId) { return this.getRequests().filter(r => r.employeeId === employeeId); },
 
-  // ---------- Reviews ----------
+  // ============================================================
+  // REVIEWS
+  // ============================================================
   seedReviews() {
     const reviews = [
       { id: 501, clientId: 4, requestId: null, rating: 5, text: 'Быстро починили ноутбук, заменили матрицу. Приятные мастера, всё объяснили.', isPublished: true, createdAt: '2025-11-20T10:00:00Z' },
@@ -190,7 +226,9 @@ const DB = {
   },
   getPublishedReviews() { return this.getReviews().filter(r => r.isPublished); },
 
-  // ---------- Leads ----------
+  // ============================================================
+  // LEADS
+  // ============================================================
   getLeads() { return this.get(this.KEYS.leads); },
   createLead({ name, phone, comment }) {
     const leads = this.getLeads();
@@ -199,7 +237,9 @@ const DB = {
     return lead;
   },
 
-  // ---------- Portfolio ----------
+  // ============================================================
+  // PORTFOLIO
+  // ============================================================
   seedPortfolio() {
     const items = [
       { id: 601, title: 'Замена матрицы MacBook Pro', category: 'laptops', description: 'Установили новую Retina-матрицу, откалибровали цвет.', icon: '💻', serviceId: 1, createdAt: '2025-11-01T10:00:00Z' },
@@ -213,7 +253,9 @@ const DB = {
   },
   getPortfolio() { return this.get(this.KEYS.portfolio); },
 
-  // ---------- Settings ----------
+  // ============================================================
+  // SETTINGS
+  // ============================================================
   seedSettings() {
     const s = {
       phone: '+7 (900) 000-00-00',
@@ -240,7 +282,156 @@ const DB = {
     return s;
   },
 
-  // ---------- Slots ----------
+  // ============================================================
+  // DEVICE TYPES
+  // ============================================================
+  seedDeviceTypes() {
+    this.set(this.KEYS.deviceTypes, [
+      { id: 1, code: 'laptop', title: 'Ноутбук', icon: '💻', sort_order: 1 },
+      { id: 2, code: 'phone', title: 'Смартфон', icon: '📱', sort_order: 2 },
+      { id: 3, code: 'pc', title: 'Компьютер', icon: '🖥️', sort_order: 3 },
+      { id: 4, code: 'tablet', title: 'Планшет', icon: '📲', sort_order: 4 },
+      { id: 5, code: 'tv', title: 'Телевизор', icon: '📺', sort_order: 5 },
+      { id: 6, code: 'console', title: 'Игровая консоль', icon: '🎮', sort_order: 6 },
+      { id: 7, code: 'washer', title: 'Стиральная машина', icon: '🧺', sort_order: 7 },
+    ]);
+  },
+  getDeviceTypes() {
+    return this.get(this.KEYS.deviceTypes).sort((a,b) => a.sort_order - b.sort_order);
+  },
+  findDeviceTypeByCode(code) {
+    return this.getDeviceTypes().find(t => t.code === code);
+  },
+
+  // ============================================================
+  // DEVICE BRANDS
+  // ============================================================
+  seedDeviceBrands() {
+    this.set(this.KEYS.deviceBrands, [
+      // Ноутбуки (type 1)
+      { id: 1, device_type_id: 1, title: 'Apple', popularity: 50 },
+      { id: 2, device_type_id: 1, title: 'Lenovo', popularity: 40 },
+      { id: 3, device_type_id: 1, title: 'HP', popularity: 35 },
+      { id: 4, device_type_id: 1, title: 'Asus', popularity: 30 },
+      { id: 5, device_type_id: 1, title: 'Acer', popularity: 25 },
+      { id: 6, device_type_id: 1, title: 'Dell', popularity: 20 },
+      { id: 7, device_type_id: 1, title: 'MSI', popularity: 15 },
+      // Смартфоны (type 2)
+      { id: 8, device_type_id: 2, title: 'Apple', popularity: 60 },
+      { id: 9, device_type_id: 2, title: 'Samsung', popularity: 50 },
+      { id: 10, device_type_id: 2, title: 'Xiaomi', popularity: 45 },
+      { id: 11, device_type_id: 2, title: 'Huawei', popularity: 25 },
+      { id: 12, device_type_id: 2, title: 'Google', popularity: 20 },
+      // ПК (type 3)
+      { id: 13, device_type_id: 3, title: 'Собственная сборка', popularity: 40 },
+      { id: 14, device_type_id: 3, title: 'HP', popularity: 25 },
+      { id: 15, device_type_id: 3, title: 'Dell', popularity: 20 },
+      { id: 16, device_type_id: 3, title: 'Lenovo', popularity: 20 },
+      // Планшеты (type 4)
+      { id: 17, device_type_id: 4, title: 'Apple', popularity: 35 },
+      { id: 18, device_type_id: 4, title: 'Samsung', popularity: 25 },
+      { id: 19, device_type_id: 4, title: 'Huawei', popularity: 15 },
+      // ТВ (type 5)
+      { id: 20, device_type_id: 5, title: 'Samsung', popularity: 30 },
+      { id: 21, device_type_id: 5, title: 'LG', popularity: 28 },
+      { id: 22, device_type_id: 5, title: 'Sony', popularity: 18 },
+      // Консоли (type 6)
+      { id: 23, device_type_id: 6, title: 'Sony', popularity: 25 },
+      { id: 24, device_type_id: 6, title: 'Microsoft', popularity: 20 },
+      { id: 25, device_type_id: 6, title: 'Nintendo', popularity: 15 },
+      // Стиральные машины (type 7)
+      { id: 26, device_type_id: 7, title: 'Bosch', popularity: 20 },
+      { id: 27, device_type_id: 7, title: 'LG', popularity: 18 },
+      { id: 28, device_type_id: 7, title: 'Samsung', popularity: 15 },
+    ]);
+  },
+  getDeviceBrands(deviceTypeId) {
+    return this.get(this.KEYS.deviceBrands)
+      .filter(b => b.device_type_id === deviceTypeId)
+      .sort((a,b) => b.popularity - a.popularity);
+  },
+
+  // ============================================================
+  // DEVICE MODELS
+  // ============================================================
+  seedDeviceModels() {
+    this.set(this.KEYS.deviceModels, [
+      { id: 1, brand_id: 1, title: 'MacBook Pro 14 M2', popularity: 30 },
+      { id: 2, brand_id: 1, title: 'MacBook Air M1', popularity: 25 },
+      { id: 3, brand_id: 1, title: 'MacBook Pro 16 M1 Pro', popularity: 20 },
+      { id: 4, brand_id: 2, title: 'IdeaPad 3', popularity: 20 },
+      { id: 5, brand_id: 2, title: 'ThinkPad T14', popularity: 15 },
+      { id: 6, brand_id: 3, title: 'Pavilion 15', popularity: 18 },
+      { id: 7, brand_id: 4, title: 'VivoBook 15', popularity: 15 },
+      { id: 8, brand_id: 8, title: 'iPhone 13', popularity: 40 },
+      { id: 9, brand_id: 8, title: 'iPhone 14 Pro', popularity: 35 },
+      { id: 10, brand_id: 8, title: 'iPhone 12', popularity: 30 },
+      { id: 11, brand_id: 8, title: 'iPhone SE 2022', popularity: 15 },
+      { id: 12, brand_id: 9, title: 'Galaxy S22', popularity: 25 },
+      { id: 13, brand_id: 9, title: 'Galaxy A53', popularity: 22 },
+      { id: 14, brand_id: 9, title: 'Galaxy S21', popularity: 18 },
+      { id: 15, brand_id: 10, title: 'Redmi Note 11', popularity: 22 },
+      { id: 16, brand_id: 10, title: 'Mi 11 Lite', popularity: 15 },
+      { id: 17, brand_id: 17, title: 'iPad 9', popularity: 20 },
+      { id: 18, brand_id: 17, title: 'iPad Air 5', popularity: 15 },
+      { id: 19, brand_id: 20, title: 'UE55AU7100', popularity: 15 },
+      { id: 20, brand_id: 21, title: '55UP75006LF', popularity: 12 },
+    ]);
+  },
+  getDeviceModels(brandId) {
+    return this.get(this.KEYS.deviceModels)
+      .filter(m => m.brand_id === brandId)
+      .sort((a,b) => b.popularity - a.popularity);
+  },
+
+  // ============================================================
+  // COMMON PROBLEMS
+  // ============================================================
+  seedCommonProblems() {
+    this.set(this.KEYS.commonProblems, [
+      { id: 1, device_type_id: 1, title: 'Не включается', icon: '🔌', popularity: 45 },
+      { id: 2, device_type_id: 1, title: 'Перегрев и шум', icon: '🔥', popularity: 38 },
+      { id: 3, device_type_id: 1, title: 'Разбит экран', icon: '💔', popularity: 35 },
+      { id: 4, device_type_id: 1, title: 'Не заряжается', icon: '🔋', popularity: 30 },
+      { id: 5, device_type_id: 1, title: 'Залили жидкостью', icon: '💧', popularity: 25 },
+      { id: 6, device_type_id: 1, title: 'Не работает клавиатура', icon: '⌨️', popularity: 20 },
+      { id: 7, device_type_id: 1, title: 'Проблемы с Wi-Fi', icon: '📡', popularity: 15 },
+      { id: 8, device_type_id: 2, title: 'Разбит экран', icon: '💔', popularity: 55 },
+      { id: 9, device_type_id: 2, title: 'Быстро разряжается', icon: '🔋', popularity: 40 },
+      { id: 10, device_type_id: 2, title: 'Не заряжается', icon: '🔌', popularity: 35 },
+      { id: 11, device_type_id: 2, title: 'Попала вода', icon: '💧', popularity: 25 },
+      { id: 12, device_type_id: 2, title: 'Не работает камера', icon: '📷', popularity: 15 },
+      { id: 13, device_type_id: 3, title: 'Не включается', icon: '🔌', popularity: 30 },
+      { id: 14, device_type_id: 3, title: 'Синий экран', icon: '⚠️', popularity: 25 },
+      { id: 15, device_type_id: 3, title: 'Тормозит', icon: '🐢', popularity: 20 },
+      { id: 16, device_type_id: 3, title: 'Шумит кулер', icon: '🔊', popularity: 15 },
+      { id: 17, device_type_id: 4, title: 'Разбит экран', icon: '💔', popularity: 30 },
+      { id: 18, device_type_id: 4, title: 'Не заряжается', icon: '🔋', popularity: 20 },
+      { id: 19, device_type_id: 5, title: 'Нет изображения', icon: '📺', popularity: 25 },
+      { id: 20, device_type_id: 5, title: 'Полосы на экране', icon: '📊', popularity: 20 },
+      { id: 21, device_type_id: 6, title: 'Перегрев', icon: '🔥', popularity: 20 },
+      { id: 22, device_type_id: 6, title: 'Не читает диски', icon: '💿', popularity: 15 },
+      { id: 23, device_type_id: 7, title: 'Не сливает воду', icon: '💧', popularity: 20 },
+      { id: 24, device_type_id: 7, title: 'Не отжимает', icon: '🌀', popularity: 18 },
+    ]);
+  },
+  getCommonProblems(deviceTypeId) {
+    return this.get(this.KEYS.commonProblems)
+      .filter(p => p.device_type_id === deviceTypeId)
+      .sort((a,b) => b.popularity - a.popularity);
+  },
+
+  incrementPopularity(collectionKey, id) {
+    const list = this.get(collectionKey);
+    const idx = list.findIndex(x => x.id === id);
+    if (idx === -1) return;
+    list[idx].popularity = (list[idx].popularity || 0) + 1;
+    this.set(collectionKey, list);
+  },
+
+  // ============================================================
+  // SLOTS
+  // ============================================================
   getAvailableSlots(dateStr, employeeId, durationMinutes = 60) {
     const allSlots = ['09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00'];
     const busy = this.getRequests().filter(r => {
